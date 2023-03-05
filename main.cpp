@@ -149,13 +149,11 @@ public:
             word_to_document_freqs_[word][document_id] += inv_word_count;
         }
         documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
-        documents_id.push_back(document_id);
+        documents_id_.push_back(document_id);
     }
 
     template <typename DocumentPredicate>
     vector<Document> FindTopDocuments(const string& raw_query, DocumentPredicate document_predicate) const {
-        if (!IsValidWord(raw_query))
-            throw invalid_argument("Invalid symbol in request");
 
         const Query query = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query, document_predicate);
@@ -191,15 +189,12 @@ public:
 
     inline static constexpr int INVALID_DOCUMENT_ID = -1;
     int GetDocumentId(int index) const {
-        if (index > documents_id.size())
+        if (index > documents_id_.size())
             throw out_of_range("Out of range");
-        int result = 0;
-        return result = documents_id[index - 1];
+        return documents_id_[index - 1];
     }
 
     tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const {
-        if (!IsValidWord(raw_query))
-            throw invalid_argument("Invalid symbol in request");
 
         const Query query = ParseQuery(raw_query);
         vector<string> matched_words;
@@ -234,7 +229,7 @@ private:
         int rating;
         DocumentStatus status;
     };
-    vector <int> documents_id;
+    vector <int> documents_id_;
     set<string> stop_words_;
     map<string, map<int, double>> word_to_document_freqs_;
     map<int, DocumentData> documents_;
@@ -273,6 +268,9 @@ private:
     QueryWord ParseQueryWord(string text) const {
         bool is_minus = false;
         // Word shouldn't be empty
+        if (!IsValidWord(text))
+            throw invalid_argument("Invalid symbol");
+
         if (text[0] == '-') {
             if (text.size() == 1 || text[1] == '-')
                 throw invalid_argument("Invalid symbol after -");
@@ -490,7 +488,7 @@ int main() {
     search_server.AddDocument(0, "ухоженный скворец евгений"s, DocumentStatus::BANNED, { 9 });
 
     cout << "ACTUAL by default:"s << endl;
-    for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s)) {
+    for (const Document& document : search_server.FindTopDocuments("ухоженный кот")) {
         PrintDocument(document);
     }
 
